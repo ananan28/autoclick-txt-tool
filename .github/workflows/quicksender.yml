@@ -1,7 +1,7 @@
 name: QuickSender Windows installer
 on:
   push:
-    branches: [quicksender-v2.1-installer]
+    branches: [quicksender-v2.2-installer]
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,6 +23,7 @@ jobs:
           python -m pip install pyinstaller==6.16.0 keyboard==0.13.5 pyperclip==1.11.0
           python -c "import base64,pathlib; p=pathlib.Path('QuickSender.ico.b64'); pathlib.Path('QuickSender.ico').write_bytes(base64.b64decode(p.read_text()))"
       - name: Test original program
+        timeout-minutes: 2
         run: |
           python -m unittest -v test_quick_sender.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -39,7 +40,7 @@ jobs:
           $target = Join-Path $env:RUNNER_TEMP 'QuickSender-installed'
           $env:APPDATA = Join-Path $env:RUNNER_TEMP 'QuickSender-test-profile'
           New-Item -ItemType Directory -Force $env:APPDATA | Out-Null
-          $setup = Start-Process -FilePath (Resolve-Path 'installer-output/QuickSender-2.1.0-Setup.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$target`"") -Wait -PassThru
+          $setup = Start-Process -FilePath (Resolve-Path 'installer-output/QuickSender-2.2.0-Setup.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$target`"") -Wait -PassThru
           if ($setup.ExitCode -ne 0) { throw 'Installation failed' }
           $app = Start-Process -FilePath "$target/QuickSender.exe" -PassThru
           Start-Sleep -Seconds 6
@@ -54,5 +55,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: QuickSender-Windows-Installer
-          path: quicksender/installer-output/QuickSender-2.1.0-Setup.exe
+          path: quicksender/installer-output/QuickSender-2.2.0-Setup.exe
           if-no-files-found: error
