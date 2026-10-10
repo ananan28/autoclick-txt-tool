@@ -1,12 +1,12 @@
 [Setup]
 AppId={{F638DC5F-601E-448A-93F4-6824633E270A}
 AppName=邮箱连点器 QuickSender
-AppVersion=2.2.0
+AppVersion=2.3.0
 DefaultDirName={localappdata}\Programs\QuickSender
 DefaultGroupName=邮箱连点器 QuickSender
 PrivilegesRequired=lowest
 OutputDir=installer-output
-OutputBaseFilename=QuickSender-2.2.0-Setup
+OutputBaseFilename=QuickSender-2.3.0-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
