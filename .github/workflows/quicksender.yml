@@ -1,7 +1,7 @@
 name: QuickSender Windows installer
 on:
   push:
-    branches: [quicksender-v2.2-installer]
+    branches: [quicksender-v2.3-installer]
   workflow_dispatch:
 permissions:
   contents: read
@@ -40,7 +40,7 @@ jobs:
           $target = Join-Path $env:RUNNER_TEMP 'QuickSender-installed'
           $env:APPDATA = Join-Path $env:RUNNER_TEMP 'QuickSender-test-profile'
           New-Item -ItemType Directory -Force $env:APPDATA | Out-Null
-          $setup = Start-Process -FilePath (Resolve-Path 'installer-output/QuickSender-2.2.0-Setup.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$target`"") -Wait -PassThru
+          $setup = Start-Process -FilePath (Resolve-Path 'installer-output/QuickSender-2.3.0-Setup.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$target`"") -Wait -PassThru
           if ($setup.ExitCode -ne 0) { throw 'Installation failed' }
           $app = Start-Process -FilePath "$target/QuickSender.exe" -PassThru
           Start-Sleep -Seconds 6
@@ -55,5 +55,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: QuickSender-Windows-Installer
-          path: quicksender/installer-output/QuickSender-2.2.0-Setup.exe
+          path: quicksender/installer-output/QuickSender-2.3.0-Setup.exe
           if-no-files-found: error
