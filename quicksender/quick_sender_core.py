@@ -108,7 +108,7 @@ class StateStore:
             raise ValueError("存档计数格式无效。")
         return normalize(restored)
 
-    def save(self, snapshot: Snapshot) -> Snapshot:
+    def save(self, snapshot: Snapshot, *, sync_paths: tuple[str, ...] | None = None) -> Snapshot:
         snapshot = normalize(snapshot)
         if snapshot.email_path and snapshot.words_path:
             if os.path.normcase(os.path.abspath(snapshot.email_path)) == os.path.normcase(os.path.abspath(snapshot.words_path)):
@@ -124,7 +124,7 @@ class StateStore:
             (snapshot.email_path, snapshot.email_text, snapshot.email_encoding),
             (snapshot.words_path, snapshot.words_text, snapshot.words_encoding),
         ):
-            if not path:
+            if not path or (sync_paths is not None and path not in sync_paths):
                 continue
             dest = Path(path)
             with dest.open("rb") as f:
