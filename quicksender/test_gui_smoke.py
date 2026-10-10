@@ -18,6 +18,10 @@ sys.modules['pyperclip'] = pyperclip
 
 from quick_sender import QuickSenderApp, filedialog
 
+# Simulate external target focus; fail to stderr without opening modal dialogs.
+QuickSenderApp.main_window_foreground = lambda self: False
+sys.excepthook = sys.__excepthook__
+
 with tempfile.TemporaryDirectory() as temp:
     os.environ['APPDATA'] = temp
     path = Path(temp)
