@@ -34,7 +34,7 @@ sys.excepthook = log_exception
 class QuickSenderApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("QuickSender 2.2 · 邮箱连点器")
+        self.root.title("QuickSender 2.3 · 邮箱连点器")
         self.root.geometry("860x600")
         self.root.minsize(690, 450)
         self.store = StateStore()
@@ -199,11 +199,11 @@ class QuickSenderApp:
 
     def load_file(self, kind):
         self.cancel_scheduled_save()
-        if not self.persist_ui(show_error=True):
-            return
+        current = self.from_ui()
         path = filedialog.askopenfilename(title=("选择邮箱 TXT" if kind == "email" else "选择话术 TXT"),
                                           filetypes=[("文本文件", "*.txt"), ("全部文件", "*.*")])
         if not path:
+            self.save_after_id = self.root.after(250, self.auto_save)
             return
         path = os.path.abspath(path)
         other = self.state.words_path if kind == "email" else self.state.email_path
@@ -213,13 +213,13 @@ class QuickSenderApp:
         try:
             content, encoding = read_text_file(path)
             if kind == "email":
-                updated = replace(self.state, email_path=path, email_text=content,
+                updated = replace(current, email_path=path, email_text=content,
                                   email_encoding=encoding, f4_state=0)
             else:
-                updated = replace(self.state, words_path=path, words_text=content,
+                updated = replace(current, words_path=path, words_text=content,
                                   words_encoding=encoding, words_index=0)
             # 初次选择文件保存当前会话。
-            updated = self.store.save(updated)
+            updated = self.store.save(updated, sync_paths=())
             self.state = updated
             if kind == "email":
                 self.set_text(self.email_text, content)
