@@ -42,6 +42,23 @@ with tempfile.TemporaryDirectory() as temp:
     assert app.state.email_path == str(emails)
     assert app.state.words_path == str(words)
 
+    # Reimport changed source files without overwriting either source first.
+    emails.write_text('used@example.com\none@example.com\ntwo@example.com\n', encoding='utf-8')
+    words.write_text('重新导入的话术\n第一条话术\n第二条话术\n', encoding='utf-8')
+    paths = iter([str(emails), str(words)])
+    filedialog.askopenfilename = lambda **kwargs: next(paths)
+    app.load_emails()
+    assert words.read_text(encoding='utf-8').startswith('重新导入的话术')
+    app.load_words()
+    assert app.state.email_text.startswith('used@example.com')
+    assert app.state.words_text.startswith('重新导入的话术')
+    # Restore baseline through the same real import controls.
+    emails.write_text('one@example.com\ntwo@example.com\n', encoding='utf-8')
+    words.write_bytes(original_words)
+    paths = iter([str(emails), str(words)])
+    app.load_emails()
+    app.load_words()
+
     app.handle_f4()  # 邮箱1
     assert clip['pasted'][-1][1] == 'one@example.com'
     assert emails.read_text(encoding='utf-8') == 'two@example.com\n'
