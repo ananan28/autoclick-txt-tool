@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
-import shutil
 import tempfile
 
 
@@ -88,29 +87,6 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
             os.unlink(tmp)
 
 
-def backup_once(path: str) -> str:
-    """第一次修改前留原始 TXT 备份（不会覆盖历史备份）。"""
-    src = Path(path)
-    if not src.is_file():
-        raise FileNotFoundError(f"原始 TXT 不存在：{src}")
-    backup = src.with_name(src.name + ".QuickSender原始备份.txt")
-    if backup.exists():
-        return str(backup)
-    try:
-        with src.open("rb") as inp, backup.open("xb") as out:
-            shutil.copyfileobj(inp, out)
-            out.flush()
-            os.fsync(out.fileno())
-    except FileExistsError:
-        pass
-    except Exception:
-        # 防止留下不完整的首次备份文件
-        try:
-            backup.unlink(missing_ok=True)
-        except OSError:
-            pass
-        raise
-    return str(backup)
 
 
 class StateStore:
@@ -137,11 +113,6 @@ class StateStore:
         if snapshot.email_path and snapshot.words_path:
             if os.path.normcase(os.path.abspath(snapshot.email_path)) == os.path.normcase(os.path.abspath(snapshot.words_path)):
                 raise ValueError("邮箱和话术不能使用同一个 TXT 文件，否则会互相覆盖。")
-
-        # 确保备份成功，才允许修改源 TXT 或更新进度。
-        for path in (snapshot.email_path, snapshot.words_path):
-            if path:
-                backup_once(path)
 
         snapshot = replace(snapshot, saved_at=datetime.now(timezone.utc).isoformat())
         payload = json.dumps(asdict(snapshot), ensure_ascii=False, indent=2).encode("utf-8")
