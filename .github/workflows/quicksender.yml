@@ -1,0 +1,58 @@
+name: QuickSender Windows installer
+on:
+  push:
+    branches: [quicksender-v2.1-installer]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: quicksender
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Dependencies and original icon
+        run: |
+          python -m pip install pyinstaller==6.16.0 keyboard==0.13.5 pyperclip==1.11.0
+          python -c "import base64,pathlib; p=pathlib.Path('QuickSender.ico.b64'); pathlib.Path('QuickSender.ico').write_bytes(base64.b64decode(p.read_text()))"
+      - name: Test original program
+        run: |
+          python -m unittest -v test_quick_sender.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python test_gui_smoke.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Package application
+        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name QuickSender --icon QuickSender.ico --hidden-import keyboard._winkeyboard --hidden-import pyperclip --hidden-import quick_sender_core quick_sender.py
+      - name: Compile installer
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
+      - name: Verify installation startup and uninstall
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'QuickSender-installed'
+          $env:APPDATA = Join-Path $env:RUNNER_TEMP 'QuickSender-test-profile'
+          New-Item -ItemType Directory -Force $env:APPDATA | Out-Null
+          $setup = Start-Process -FilePath (Resolve-Path 'installer-output/QuickSender-2.1.0-Setup.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$target`"") -Wait -PassThru
+          if ($setup.ExitCode -ne 0) { throw 'Installation failed' }
+          $app = Start-Process -FilePath "$target/QuickSender.exe" -PassThru
+          Start-Sleep -Seconds 6
+          $app.Refresh()
+          if ($app.HasExited) { throw 'Application exited during startup' }
+          if ($app.MainWindowHandle -eq 0) { throw 'Application window not found' }
+          Write-Host "Window title: $($app.MainWindowTitle)"
+          Stop-Process -Id $app.Id
+          $un = Start-Process -FilePath "$target/unins000.exe" -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru
+          if ($un.ExitCode -ne 0) { throw 'Uninstall failed' }
+          if (Test-Path "$target/QuickSender.exe") { throw 'Executable remains after uninstall' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QuickSender-Windows-Installer
+          path: quicksender/installer-output/QuickSender-2.1.0-Setup.exe
+          if-no-files-found: error
