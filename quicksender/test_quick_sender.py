@@ -81,13 +81,13 @@ class QuickSenderTests(unittest.TestCase):
         self.assertEqual(results[:6], ["a@example.com", "句子一", "b@example.com", "句子二", "c@example.com", "句子三"])
         self.assertEqual(self.store.load().words_index, 0)
 
-    def test_backup_created_once_and_never_replaced(self):
-        self.store.save(self.original)
-        backup = Path(str(self.email_file) + ".QuickSender原始备份.txt")
-        self.assertEqual(backup.read_text(encoding="utf8"), self.original.email_text)
-        _, stepped = next_item(self.original)
-        self.store.save(stepped)
-        self.assertEqual(backup.read_text(encoding="utf8"), self.original.email_text)
+    def test_no_backup_files_created(self):
+        state = self.store.save(self.original)
+        for _ in range(4):
+            _, state = next_item(state)
+            self.store.save(state)
+        self.assertFalse(list(self.folder.glob("*.QuickSender原始备份.txt")))
+        self.assertFalse(list(self.folder.glob("*.tmp")))
 
     def test_manual_edits_saved_to_both_originals(self):
         self.store.save(self.original)
