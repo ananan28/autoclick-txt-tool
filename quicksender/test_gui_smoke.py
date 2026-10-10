@@ -52,12 +52,15 @@ with tempfile.TemporaryDirectory() as temp:
     assert words.read_bytes() == original_words
     app.on_closing()
 
+    # External changes must not reset the saved content or F4 position.
+    emails.write_text('external@example.com\n', encoding='utf-8')
     gui2 = tk.Tk()   # 模拟完全退出并重新启动 EXE
     app2 = QuickSenderApp(gui2)
     gui2.update()
     assert app2.state.f4_state == 0
     assert app2.state.words_index == 1
     assert app2.email_text.get('1.0', 'end-1c').strip() == 'two@example.com'
+    assert emails.read_text(encoding='utf-8') == 'external@example.com\n'
     app2.handle_f4()  # 邮箱2
     assert clip['pasted'][-1][1] == 'two@example.com'
     assert emails.read_text(encoding='utf-8') == ''
