@@ -34,7 +34,7 @@ sys.excepthook = log_exception
 class QuickSenderApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("QuickSender · F4 双轨发送 · 自动存档版")
+        self.root.title("QuickSender 2.2 · 邮箱连点器")
         self.root.geometry("860x600")
         self.root.minsize(690, 450)
         self.store = StateStore()
@@ -183,38 +183,13 @@ class QuickSenderApp:
             return
         if stored is None:
             return
-        conflicts = self.store.differing_files(stored)
-        if conflicts:
-            choose_archive = messagebox.askyesno(
-                "发现存档与原始 TXT 不一致",
-                "以下文件已与上次的进度存档不一致：\n\n"
-                + "\n".join(conflicts)
-                + "\n\n【是】使用上次的进度（将覆盖这些 TXT）。\n"
-                  "【否】使用当前 TXT（可能重置下一条话术的位置）。\n\n"
-                  "如果你刚修改过 TXT，请选择【否】。",
-            )
-            if not choose_archive:
-                new = stored
-                for field, path in (("email", stored.email_path), ("words", stored.words_path)):
-                    if not path:
-                        continue
-                    try:
-                        content, encoding = read_text_file(path)
-                        new = replace(new, **{field + "_text": content, field + "_encoding": encoding})
-                    except Exception as e:
-                        messagebox.showwarning("文件读取失败", f"{path}\n{e}\n保留原来的存档内容。")
-                stored = replace(new, words_index=0, f4_state=0)
+        # Restore the last saved window contents and F4 position exactly.
+        # Do not reload external TXT or write files during startup.
         self.state = normalize(stored)
         self.set_text(self.email_text, self.state.email_text)
         self.set_text(self.words_text, self.state.words_text)
         self.refresh_source_labels()
-        # 自动同步极端情况下未写完的 TXT，保证 JSON 和 TXT 一致。
-        try:
-            self.state = self.store.save(self.state)
-            self.set_status("上次进度已恢复，继续按 F4 即可接着使用。", "#197046")
-        except Exception as e:
-            self.set_status(f"界面已恢复，但无法同步原始 TXT：{e}", "red")
-            messagebox.showwarning("存档恢复提醒", f"断点已恢复到界面，但 TXT 写回失败：\n{e}")
+        self.set_status("已恢复关闭时的内容和位置，继续按 F4 即可。", "#197046")
 
     def load_emails(self):
         self.load_file("email")
@@ -243,7 +218,7 @@ class QuickSenderApp:
             else:
                 updated = replace(self.state, words_path=path, words_text=content,
                                   words_encoding=encoding, words_index=0)
-            # 初次选文件就建立存档和备份。
+            # 初次选择文件保存当前会话。
             updated = self.store.save(updated)
             self.state = updated
             if kind == "email":
